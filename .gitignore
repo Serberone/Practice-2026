@@ -26,6 +26,9 @@ build/
 *.log
 npm-debug.log*
 
+# Cursor (локальные правила, не в remote)
+.cursor/
+
 # IDE
 .idea/
 *.swp
