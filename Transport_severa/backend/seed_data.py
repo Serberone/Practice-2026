@@ -42,7 +42,7 @@ async def seed_initial_data():
             "city": "Усинск",
             "type": "AIRPORT",
             "code": "USK",
-            "yandex_code": "s9600375",
+            "yandex_code": "s9600382",
             "location": {"type": "Point", "coordinates": [57.3686, 65.9989]},
             "is_active": True
         },
@@ -62,7 +62,7 @@ async def seed_initial_data():
             "city": "Ухта",
             "type": "AIRPORT",
             "code": "UCT",
-            "yandex_code": "s9600374",
+            "yandex_code": "s9600380",
             "location": {"type": "Point", "coordinates": [53.8039, 63.5658]},
             "is_active": True
         },
