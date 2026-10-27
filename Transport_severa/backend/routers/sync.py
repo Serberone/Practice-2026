@@ -10,13 +10,31 @@ from routers.auth import require_role
 logger = logging.getLogger("transport_severa.sync")
 router = APIRouter(prefix="/sync", tags=["Синхронизация"])
 
-# Базовые маршрутные пары Республики Коми (Сыктывкар — города республики)
+# Коды населённых пунктов Яндекс.Расписаний (settlement), не коды станций s...
+# Поиск по станциям часто отвечает 404 / пустым segments.
+SETTLEMENT_CODES = {
+    "сыктывкар": "c19",
+    "ухта": "c10943",
+    "усинск": "c10940",
+    "воркута": "c10931",
+    "печора": "c10938",
+}
+
 DEFAULT_ROUTES = [
     {"from": "c19", "to": "c10943", "from_city": "Сыктывкар", "to_city": "Ухта"},
     {"from": "c19", "to": "c10940", "from_city": "Сыктывкар", "to_city": "Усинск"},
     {"from": "c19", "to": "c10931", "from_city": "Сыктывкар", "to_city": "Воркута"},
     {"from": "c19", "to": "c10938", "from_city": "Сыктывкар", "to_city": "Печора"},
 ]
+
+HUB_CITY = "сыктывкар"
+
+
+def _parse_yandex_datetime(value: str) -> datetime:
+    parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is not None:
+        return parsed.replace(tzinfo=None)
+    return parsed
 
 @router.post("/yandex")
 async def sync_yandex_schedule(
@@ -38,25 +56,32 @@ async def sync_yandex_schedule(
     if from_code and to_code:
         routes_to_sync.append({"from": from_code, "to": to_code})
     else:
-        # Если параметры не заданы вручную — получаем станции из БД, у которых есть yandex_code
+        # Пары городов Коми по кодам населённых пунктов. Коды станций (s...) сюда не тащим —
+        # Яндекс на них часто отдаёт 404.
         if db_obj.is_connected:
-            stations = await db_obj.db.stations.find(
-                {"is_active": True, "yandex_code": {"$ne": None}}
-            ).to_list(length=100)
-            
-            # Ищем хаб (Сыктывкар) и строим маршруты к остальным станциям
-            hub = next((s for s in stations if "сыктывкар" in s.get("city", "").lower()), None)
-            if hub:
-                for target in stations:
-                    if target.get("yandex_code") != hub.get("yandex_code"):
-                        routes_to_sync.append({
-                            "from": hub["yandex_code"],
-                            "to": target["yandex_code"],
-                            "from_city": hub.get("city"),
-                            "to_city": target.get("city")
-                        })
-        
-        # Если база пустая или станций нет, используем дефолтные направления по Коми
+            stations = await db_obj.db.stations.find({"is_active": True}).to_list(length=100)
+            cities = []
+            for station in stations:
+                city_name = (station.get("city") or "").strip()
+                city_key = city_name.lower()
+                if city_name and city_key not in {c.lower() for c in cities}:
+                    cities.append(city_name)
+
+            hub_city = next((c for c in cities if HUB_CITY in c.lower()), "Сыктывкар")
+            hub_code = SETTLEMENT_CODES.get(hub_city.lower()) or SETTLEMENT_CODES[HUB_CITY]
+            for city_name in cities:
+                city_key = city_name.lower()
+                if HUB_CITY in city_key:
+                    continue
+                dest_code = SETTLEMENT_CODES.get(city_key)
+                if dest_code:
+                    routes_to_sync.append({
+                        "from": hub_code,
+                        "to": dest_code,
+                        "from_city": hub_city,
+                        "to_city": city_name,
+                    })
+
         if not routes_to_sync:
             routes_to_sync = DEFAULT_ROUTES
 
@@ -80,8 +105,20 @@ async def sync_yandex_schedule(
 
         # 3. Сохраняем сегменты в коллекцию рейсов (trips)
         for seg in segments:
+            if not seg.get("departure") or not seg.get("arrival"):
+                continue
+            try:
+                departure_planned = _parse_yandex_datetime(seg["departure"])
+                arrival_planned = _parse_yandex_datetime(seg["arrival"])
+            except (TypeError, ValueError):
+                logger.warning("Пропущен сегмент с некорректной датой: %s", seg.get("departure"))
+                continue
+
             thread = seg.get("thread", {})
-            transport_type = "PLANE" if thread.get("transport_type") == "plane" else "BUS"
+            yandex_transport = thread.get("transport_type")
+            if yandex_transport not in {"plane", "bus"}:
+                continue
+            transport_type = "PLANE" if yandex_transport == "plane" else "BUS"
             
             trip_doc = {
                 "trip_number": thread.get("number") or "Б/Н",
@@ -101,8 +138,8 @@ async def sync_yandex_schedule(
                     }
                 },
                 "schedule": {
-                    "departure_planned": datetime.fromisoformat(seg["departure"]),
-                    "arrival_planned": datetime.fromisoformat(seg["arrival"]),
+                    "departure_planned": departure_planned,
+                    "arrival_planned": arrival_planned,
                     "departure_estimated": None,
                     "arrival_estimated": None
                 },

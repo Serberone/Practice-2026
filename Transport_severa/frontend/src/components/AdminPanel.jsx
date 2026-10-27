@@ -206,8 +206,11 @@ export default function AdminPanel() {
   const handleSyncYandex = async () => {
     try {
       setSyncMsg('Выполняется синхронизация с API Яндекс.Расписаний...');
-      const res = await api.syncYandex('c19', 'c10935');
-      setSyncMsg(`✓ ${res.message}`);
+      const res = await api.syncYandex();
+      const routeLines = (res.details || [])
+        .map((item) => `${item.route}: ${item.segments_count} рейсов`)
+        .join('; ');
+      setSyncMsg(`✓ ${res.message}${routeLines ? `. ${routeLines}` : ''}`);
       const s = await api.getSyncStatus();
       setSyncStatus(s);
     } catch (err) {

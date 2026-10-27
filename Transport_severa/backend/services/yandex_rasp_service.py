@@ -44,7 +44,8 @@ class YandexRaspService:
             "to": to_code,
             "format": "json",
             "lang": "ru_RU",
-            "date": today
+            "date": today,
+            "transport_types": "plane,bus",
         }
 
         try:

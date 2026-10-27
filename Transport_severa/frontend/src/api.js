@@ -116,6 +116,12 @@ export const api = {
   // Audit & Sync
   getAuditLogs: (eventType) => request(`/audit${eventType ? `?event_type=${eventType}` : ''}`),
   getSyncStatus: () => request('/sync/status'),
-  syncYandex: (fromCode, toCode) => request(`/sync/yandex?from_code=${fromCode}&to_code=${toCode}`, { method: 'POST' }),
+  syncYandex: (fromCode, toCode) => {
+    const params = new URLSearchParams();
+    if (fromCode) params.set('from_code', fromCode);
+    if (toCode) params.set('to_code', toCode);
+    const query = params.toString();
+    return request(`/sync/yandex${query ? `?${query}` : ''}`, { method: 'POST' });
+  },
   seedData: () => request('/sync/seed', { method: 'POST' }),
 };
