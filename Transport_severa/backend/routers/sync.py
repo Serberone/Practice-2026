@@ -3,7 +3,9 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Query, Depends
 from bson import ObjectId
 
+from config import settings
 from database import get_database
+from seed_data import seed_initial_data
 from services.yandex_rasp_service import yandex_service
 from routers.auth import require_role
 
@@ -175,3 +177,26 @@ async def sync_yandex_schedule(
         "routes_processed": len(routes_to_sync),
         "details": synced_data
     }
+
+
+@router.get("/status")
+async def get_sync_status(current_user: dict = Depends(require_role(["ADMIN", "DISPATCHER"]))):
+    db_obj = get_database()
+    cached_queries = 0
+    if db_obj.is_connected:
+        cached_queries = await db_obj.db.yandex_cache.count_documents({})
+    else:
+        cached_queries = len(db_obj._fallback_store.get("yandex_cache", {}))
+
+    api_key = settings.YANDEX_RASP_API_KEY or ""
+    return {
+        "yandex_key_configured": bool(api_key.strip()) and api_key != "ВАШ_КЛЮЧ",
+        "cached_queries": cached_queries,
+        "database_connected": db_obj.is_connected,
+    }
+
+
+@router.post("/seed")
+async def seed_demo_data(current_user: dict = Depends(require_role(["ADMIN"]))):
+    await seed_initial_data()
+    return {"message": "Демо-данные Республики Коми загружены"}

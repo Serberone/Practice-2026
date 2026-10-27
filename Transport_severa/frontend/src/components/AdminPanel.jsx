@@ -211,8 +211,12 @@ export default function AdminPanel() {
         .map((item) => `${item.route}: ${item.segments_count} рейсов`)
         .join('; ');
       setSyncMsg(`✓ ${res.message}${routeLines ? `. ${routeLines}` : ''}`);
-      const s = await api.getSyncStatus();
-      setSyncStatus(s);
+      try {
+        const s = await api.getSyncStatus();
+        setSyncStatus(s);
+      } catch (statusErr) {
+        console.error('Не удалось обновить статус синка', statusErr);
+      }
     } catch (err) {
       setSyncMsg(`✕ Ошибка: ${err.message}`);
     }
