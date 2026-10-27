@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # External APIs
     YANDEX_RASP_API_KEY: str = ""
-    YANDEX_RASP_BASE_URL: str = "https://api.rasp.yandex.net/v3.0"
+    YANDEX_RASP_BASE_URL: str = "https://api.rasp.yandex-net.ru/v3.0"
     
     # Weather API (Open-Meteo is free without API key, plus simulated Arctic conditions fallback)
     OPEN_METEO_BASE_URL: str = "https://api.open-meteo.com/v1"

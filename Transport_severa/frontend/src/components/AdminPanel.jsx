@@ -208,7 +208,7 @@ export default function AdminPanel() {
       setSyncMsg('Выполняется синхронизация с API Яндекс.Расписаний...');
       const res = await api.syncYandex();
       const routeLines = (res.details || [])
-        .map((item) => `${item.route}: ${item.segments_count} рейсов`)
+        .map((item) => `${item.route}: ${item.saved ?? item.segments_count} рейсов`)
         .join('; ');
       setSyncMsg(`✓ ${res.message}${routeLines ? `. ${routeLines}` : ''}`);
       try {
@@ -494,6 +494,9 @@ export default function AdminPanel() {
             </div>
           </div>
 
+          <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.75rem' }}>
+            Синк берёт расписание по станциям Сыктывкара, Ухты, Усинска и Печоры: все направления plane/bus, не только пары между этими городами.
+          </p>
           <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
             <button onClick={handleSyncYandex} className="btn btn-primary">
               ⚡ Запустить синхронизацию Яндекс.Расписаний
