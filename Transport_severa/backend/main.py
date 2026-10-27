@@ -41,25 +41,35 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware (crucial for frontend hosted on Vercel/Netlify communicating with backend on Render)
+# CORS: токен в Authorization, куки не нужны. allow_credentials + ["*"] браузер режет.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=settings.CORS_ORIGINS or ["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include Routers
-app.include_router(auth.router, prefix=settings.API_PREFIX)
-app.include_router(stations.router, prefix=settings.API_PREFIX)
-app.include_router(carriers.router, prefix=settings.API_PREFIX)
-app.include_router(trips.router, prefix=settings.API_PREFIX)
-app.include_router(weather.router, prefix=settings.API_PREFIX)
-app.include_router(subscriptions.router, prefix=settings.API_PREFIX)
-app.include_router(notifications.router, prefix=settings.API_PREFIX)
-app.include_router(audit.router, prefix=settings.API_PREFIX)
-app.include_router(sync.router, prefix=settings.API_PREFIX)
+API_ROUTERS = (
+    auth.router,
+    stations.router,
+    carriers.router,
+    trips.router,
+    weather.router,
+    subscriptions.router,
+    notifications.router,
+    audit.router,
+    sync.router,
+)
+
+# Каноничные пути: /api/auth/login, /api/trips, ...
+for api_router in API_ROUTERS:
+    app.include_router(api_router, prefix=settings.API_PREFIX)
+
+# Совместимость с фронтом, у которого VITE_API_BASE_URL без суффикса /api
+# (иначе POST /auth/login даёт 404).
+for api_router in API_ROUTERS:
+    app.include_router(api_router, include_in_schema=False)
 
 @app.get("/")
 async def root():

@@ -18,18 +18,19 @@
 ### Вариант 1: Запуск через Docker Compose (рекомендуется)
 
 ```bash
-cd "Транспорт Севера"
+cd Transport_severa
 docker-compose up --build
 ```
 * **Frontend:** http://localhost:3000
 * **Backend API & Swagger:** http://localhost:8000/docs
 * **MongoDB:** `localhost:27017`
+* Логин идёт на `POST /api/auth/login` (nginx проксирует на бэкенд).
 
 ### Вариант 2: Запуск без Docker
 
 #### 1. Backend
 ```bash
-cd "Транспорт Севера/backend"
+cd Transport_severa/backend
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -39,10 +40,11 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 #### 2. Frontend
 ```bash
-cd "Транспорт Севера/frontend"
+cd Transport_severa/frontend
 npm install
 npm run dev
 ```
+Vite проксирует `/api` на `http://localhost:8000`. Не задавай `VITE_API_BASE_URL` локально, если бэкенд на том же порту 8000.
 
 ---
 
@@ -75,8 +77,12 @@ npm run dev
    * На [vercel.com](https://vercel.com) импортируйте репозиторий:
      * **Root Directory:** `frontend`
      * **Framework Preset:** Vite
-     * **Environment Variables:** `VITE_API_BASE_URL` = URL вашего бэкенда на Render (например, `https://transport-backend.onrender.com/api`).
-   * Развёртывание займёт менее 1 минуты.
+     * **Environment Variables (обязательно на этапе Build):**  
+       `VITE_API_BASE_URL` = `https://<имя-бэкенда>.onrender.com/api`  
+       Пример: `https://transport-severa-backend.onrender.com/api`
+   * Нужны и `https://`, и суффикс `/api`. Иначе логин уйдёт на `/auth/login` или на сам фронт и вернёт **404**.
+   * После смены переменной пересобери фронт: Vite подставляет URL только при `npm run build`.
+   * На Render Free первый запрос к бэкенду после сна может идти 30–60 секунд.
 
 ---
 

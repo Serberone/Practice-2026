@@ -36,7 +36,4 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_BASE_URL
-        fromService:
-          type: web
-          name: transport-severa-backend
-          property: host
+        value: https://transport-severa-backend.onrender.com/api

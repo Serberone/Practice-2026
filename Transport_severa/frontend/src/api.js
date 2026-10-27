@@ -1,5 +1,21 @@
 // API Client for Transport Severa
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+function resolveApiBase() {
+  const raw = import.meta.env.VITE_API_BASE_URL;
+  if (!raw || String(raw).trim() === '') {
+    return '/api';
+  }
+
+  let base = String(raw).trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(base) && !base.startsWith('/')) {
+    base = `https://${base}`;
+  }
+  if (!base.endsWith('/api')) {
+    base = `${base}/api`;
+  }
+  return base;
+}
+
+const API_BASE = resolveApiBase();
 
 export const getAuthToken = () => localStorage.getItem('token');
 export const setAuthToken = (token) => localStorage.setItem('token', token);
@@ -51,7 +67,8 @@ export const api = {
     });
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      throw new Error(err.detail || 'Неверный логин или пароль');
+      const detail = typeof err.detail === 'string' ? err.detail : null;
+      throw new Error(detail || `Ошибка входа (${resp.status})`);
     }
     const data = await resp.json();
     setAuthToken(data.access_token);
