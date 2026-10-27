@@ -154,78 +154,7 @@ async def seed_initial_data():
         }
     ]
 
-    # 4. Weather Logs
     now = datetime.utcnow()
-    weather_reports = [
-        {
-            "city": "Усинск",
-            "station_id": "st_usk_air",
-            "timestamp": now,
-            "metrics": {
-                "temperature_c": -24.5,
-                "wind_speed_ms": 17.2,
-                "wind_gust_ms": 22.0,
-                "visibility_meters": 650,
-                "phenomena": "Сильная метель, боковой ветер, перемёты",
-                "humidity_percent": 88,
-                "pressure_hpa": 1002.5
-            },
-            "alert_level": "SEVERE",
-            "flight_critical": True,
-            "bus_critical": True
-        },
-        {
-            "city": "Печора",
-            "station_id": "st_peo_air",
-            "timestamp": now,
-            "metrics": {
-                "temperature_c": -21.0,
-                "wind_speed_ms": 13.5,
-                "wind_gust_ms": 16.0,
-                "visibility_meters": 1200,
-                "phenomena": "Низовая метель, снежная позёмка",
-                "humidity_percent": 82,
-                "pressure_hpa": 1008.0
-            },
-            "alert_level": "ADVISORY",
-            "flight_critical": False,
-            "bus_critical": True
-        },
-        {
-            "city": "Ухта",
-            "station_id": "st_uct_air",
-            "timestamp": now,
-            "metrics": {
-                "temperature_c": -16.2,
-                "wind_speed_ms": 6.8,
-                "wind_gust_ms": 9.0,
-                "visibility_meters": 3500,
-                "phenomena": "Умеренный снег",
-                "humidity_percent": 79,
-                "pressure_hpa": 1012.0
-            },
-            "alert_level": "NORMAL",
-            "flight_critical": False,
-            "bus_critical": False
-        },
-        {
-            "city": "Сыктывкар",
-            "station_id": "st_scw_air",
-            "timestamp": now,
-            "metrics": {
-                "temperature_c": -13.8,
-                "wind_speed_ms": 5.2,
-                "wind_gust_ms": 7.5,
-                "visibility_meters": 5000,
-                "phenomena": "Облачно, слабый снег",
-                "humidity_percent": 76,
-                "pressure_hpa": 1015.4
-            },
-            "alert_level": "NORMAL",
-            "flight_critical": False,
-            "bus_critical": False
-        }
-    ]
 
     # 5. Trips
     trips = [
@@ -385,9 +314,6 @@ async def seed_initial_data():
             # Users
             for u in users:
                 await db_obj.db.users.update_one({"username": u["username"]}, {"$set": u}, upsert=True)
-            # Weather
-            for w in weather_reports:
-                await db_obj.db.weather_logs.insert_one(w)
             # Trips
             for t in trips:
                 await db_obj.db.trips.update_one({"trip_number": t["trip_number"]}, {"$set": t}, upsert=True)
@@ -399,7 +325,7 @@ async def seed_initial_data():
         db_obj._fallback_store["stations"] = {s["id"]: s for s in stations}
         db_obj._fallback_store["carriers"] = {c["id"]: c for c in carriers}
         db_obj._fallback_store["users"] = {u["username"]: u for u in users}
-        db_obj._fallback_store["weather"] = {w["city"]: w for w in weather_reports}
+        db_obj._fallback_store["weather"] = {}
         db_obj._fallback_store["trips"] = {t["id"]: t for t in trips}
         db_obj._fallback_store["subscriptions"] = {}
         db_obj._fallback_store["notifications"] = {}
